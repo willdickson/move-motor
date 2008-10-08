@@ -12,7 +12,7 @@ libmove-motor:
 
 clean:
 	$(MAKE) clean -C $(LIB_DIR)
-	if [ -f *~ ]; then rm *~; fi
+	-rm *~
 
 install:
 	$(MAKE) install -C $(LIB_DIR)

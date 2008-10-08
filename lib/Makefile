@@ -27,8 +27,8 @@ test: $(LIBRARY_NAME).c test-$(LIBRARY_NAME).c
 clean: 
 	if [ -f $(TARGET).$(RELEASE_NUM) ]; then rm $(TARGET).$(RELEASE_NUM); fi
 	if [ -f test-$(LIBRARY_NAME) ]; then rm test-$(LIBRARY_NAME); fi
-	if [ -f *.o ]; then rm *.o; fi
-	if [ -f *~ ]; then rm *~; fi
+	-rm *.o
+	-rm *~
 
 install:
 	cp $(TARGET).$(RELEASE_NUM) $(INSTALL_DIR)
