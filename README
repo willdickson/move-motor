@@ -1,0 +1,12 @@
+libmove-motor
+==============
+
+The move-motor library provides a very basic RTAI lxrt interface to
+perform simple moves for motors controlled via clock and direction
+commands.
+
+A python package (pylibmove-motor) which provides a ctypes based
+wrapper of the move-motor library is included with the library.
+
+See the INSTALL file for installation instructions. 
+

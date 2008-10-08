@@ -1,0 +1,17 @@
+pylibmove-motor
+===============
+
+pylibmove-motor is python wrapper for the libmove-motor c library
+which provides a simple mechanism for outscanning kinematics to motors
+in hard realtime from userspace (RTAI lxrt).  The motors are
+controlled using clock and direction commands via dio board using the
+comedi API.
+
+Installation
+
+   * Installation instructions can be found in the INSTALL file.  
+     
+Author
+
+   * Will Dickson (wbd@caltech.edu)
+ 

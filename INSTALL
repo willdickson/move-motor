@@ -1,0 +1,13 @@
+Installing libmove-motor
+========================
+
+To build run "make"
+
+To install run "make install" as root
+
+To uninstall run "make uninstall" as root
+
+Note, the setuptools python package is required for the installation
+of python wrapper.
+
+
