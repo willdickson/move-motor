@@ -57,8 +57,7 @@ int outscan_kine(kine_t kine, motors_t motors, int dt_ns, int *end_pos)
   int pos[MAX_MOTOR];   // Array of motor positions
   int pos_last;         // Last motor position
   int pos_diff;         // Difference between current and last position
-  int period;           // Real-time loop period 
-  int now_ns;           // The current time in ns
+  RTIME now_ns;         // The current time in ns
   RT_TASK *TASK;        // Real-time task
   void *device;         // Comedi device
   char err_msg[ERR_SZ]; // Error messages
@@ -113,7 +112,8 @@ int outscan_kine(kine_t kine, motors_t motors, int dt_ns, int *end_pos)
     print_err_msg(__FILE__, __LINE__, "rt_init_task failed\n");
     return FAIL;
   }
-
+  rt_task_use_fpu(TASK,1);
+  
   // Open comedi device 
   device = comedi_open(motors.dev_name);
   if (device==0) {
@@ -139,14 +139,12 @@ int outscan_kine(kine_t kine, motors_t motors, int dt_ns, int *end_pos)
   fflush(stdout);
 
   // Setup periodic timer
-  period = (int) nano2count(dt_ns);
-  rt_set_periodic_mode();
-  start_rt_timer(period);
+  rt_set_oneshot_mode();
+  start_rt_timer(0);
 
   // Go to real-time
   mlockall(MCL_CURRENT|MCL_FUTURE);
   rt_make_hard_real_time();
-  rt_task_make_periodic(TASK,rt_get_time() + period, period);
 
   // Outscan loop
   for (i=0; i<kine.nrow; i++) {
@@ -172,7 +170,7 @@ int outscan_kine(kine_t kine, motors_t motors, int dt_ns, int *end_pos)
 	comedi_dio_write(device, motors.subdev, motors.dio_dir[j], DIO_LO);
       }
 
-      // Set clock dio      
+      // Set clock dio
       if (abs(pos_diff) > 0) {
 	comedi_dio_write(device, motors.subdev, motors.dio_clk[j], DIO_HI);
       }
@@ -193,7 +191,7 @@ int outscan_kine(kine_t kine, motors_t motors, int dt_ns, int *end_pos)
     }
 
     // Sleep until next period
-    rt_task_wait_period();
+    rt_sleep_until(nano2count(now_ns+dt_ns));
 
   } // end for i
  
@@ -330,20 +328,20 @@ int check_dt(int dt_ns)
 // ----------------------------------------------------------------
 int check_motors(motors_t motors)
 {
-  int i;
+  int i,j;
   int flag = SUCCESS;
 
   // Check number of motors
-  if ((motors.num <= 0) || (motors.num>=MAX_MOTOR)) {
+  if ((motors.num <= 0) || (motors.num>MAX_MOTOR)) {
     return FAIL;
   }
  
   for (i=0; i<motors.num; i++) {   
     // Check clk and dir range
-    if ((motors.dio_clk[i] < 0) || (motors.dio_clk[i] >= MAX_DIO)) {
+    if ((motors.dio_clk[i] < 0) || (motors.dio_clk[i] > MAX_DIO)) {
       flag = FAIL;
     }
-    if ((motors.dio_dir[i] < 0) || (motors.dio_dir[i] >= MAX_DIO)) {
+    if ((motors.dio_dir[i] < 0) || (motors.dio_dir[i] > MAX_DIO)) {
       flag = FAIL;
     }
     // Check uniqness
@@ -351,21 +349,22 @@ int check_motors(motors_t motors)
       flag = FAIL;
     }
     if (i<motors.num) {
-      if (motors.dio_clk[i] == motors.dio_clk[i+1]) {
-	flag = FAIL;
-      }
-      if (motors.dio_clk[i] == motors.dio_dir[i+1]) {
-	flag = FAIL;
-      }
-      if (motors.dio_dir[i] == motors.dio_clk[i+1]) {
-	flag = FAIL;
-      }
-      if (motors.dio_dir[i] == motors.dio_dir[i+1]) {
-	flag = FAIL;
-      }
+      for (j=i+1; j < motors.num; j++) {
+	if (motors.dio_clk[i] == motors.dio_clk[j]) {
+	  flag = FAIL;
+	}
+	if (motors.dio_clk[i] == motors.dio_dir[j]) {
+	  flag = FAIL;
+	}
+	if (motors.dio_dir[i] == motors.dio_clk[j]) {
+	  flag = FAIL;
+	}
+	if (motors.dio_dir[i] == motors.dio_dir[j]) {
+	  flag = FAIL;
+	}
+      } // End for j
     }
-  }
-
+  } // End for i
   return flag;
 }
 

@@ -9,7 +9,7 @@
 
 #define NUM_MOTOR 4
 #define NROW 20000
-#define DT_NS 1000000
+#define DT_NS 300000
 #define DEVICE "/dev/comedi0"
 #define SUBDEV 2
 
@@ -48,7 +48,6 @@ int main(int argc, char* argv[])
   for (i=0;i<NUM_MOTOR;i++) {
     printf("end_pos[%d] = %d\n", i, end_pos[i]);
   }
-
 
   return SUCCESS;
 }

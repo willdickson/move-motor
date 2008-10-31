@@ -20,7 +20,7 @@ $(OBJ): $(SRC)
 	$(CC) $(CFLAGS) $(LXRT_CFLAGS) $? -o $@ 
 
 test: $(LIBRARY_NAME).c test-$(LIBRARY_NAME).c
-	$(CC) $(LXRT_CFLAGS) $? -o test-$(LIBRARY_NAME)
+	$(CC) $(LXRT_CFLAGS) $? -o test-$(LIBRARY_NAME) $(LXRT_LDFLAGS)
 
 .PHONY: clean install uninstall
 

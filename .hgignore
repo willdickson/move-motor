@@ -5,3 +5,4 @@ syntax: glob
 *.egg-info
 *.so.*
 *.egg
+test-move-motor
