@@ -1,4 +1,4 @@
-libmove-motor
+move-motor
 ==============
 
 The move-motor library provides a very basic RTAI lxrt interface to
@@ -10,3 +10,11 @@ wrapper of the move-motor library is included with the library.
 
 See the INSTALL file for installation instructions. 
 
+
+Author
+
+ * Will Dickson <wbd@caltech.edu>
+
+
+move-motor may be freely distributed and modified in accordance with
+the GNU Lesser General Public License.
