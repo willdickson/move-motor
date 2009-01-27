@@ -27,3 +27,4 @@ License along with move-motor.  If not, see
 ------------------------------------------------------------------------
 """
 from libmove_motor import *
+from move_utils import *
