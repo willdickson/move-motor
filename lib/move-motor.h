@@ -41,7 +41,7 @@
 #define MAX_DIO 24
 #define ERR_SZ 200
 #define MAX_DT_NS 10000000 // 100 Hz 
-#define MIN_DT_NS 40000    // 25 kHz
+#define MIN_DT_NS 40000    // 20 kHz
 #define CLOCK_HI_NS 20000  // 
 #define TASK_NAME "move-motor"
 
