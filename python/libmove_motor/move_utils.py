@@ -1,4 +1,3 @@
-
 """
 -----------------------------------------------------------------------
 move-utils
@@ -33,8 +32,15 @@ Purpose: Provides a ctypes wrapper for the move-motor library.
 Author: William Dickson 
 ------------------------------------------------------------------------
 """
+import os
+import os.path
 import scipy
+import scipy.interpolate
+import ConfigParser
 
+BORFRC_DIR = os.path.join(os.environ['HOME'],'.borfrc')
+DFLT_CAL_DIR = os.path.join(BORFRC_DIR,'motor_cal')
+DFLT_MAP_DIR = os.path.join(BORFRC_DIR,'motor_map')
 
 def get_ramp_moves(p0,p1,vmax,a,dt):
     """
@@ -165,3 +171,125 @@ def get_ramp(x0,x1,vmax,a,dt, output='ramp only'):
         return ramp, vmax, a
     else:
         raise ValueError, 'unknown keyword option output=%s'%(output,)
+
+
+def read_motor_maps(filename,mapdir=DFLT_MAP_DIR,caldir=DFLT_CAL_DIR): 
+    """
+    Reads motor mapping from configuration file. Read calibration files
+    for RC motors if there are any.
+    """
+    base_filename = filename
+    config = ConfigParser.ConfigParser()
+    if os.path.exists(filename):
+        config.read(filename)
+    else:
+        filename = os.path.join(mapdir,filename)
+        if os.path.exists(filename):
+            config.read(filename)
+        else:
+            raise RuntimeError, 'motor map file not found %s'%(base_filename,)
+    
+    motor_maps = {}
+    for motor in config.sections():
+        map = {}
+        for opt in config.options(motor):
+            val = config.get(motor,opt)
+            map[opt] = val
+        motor_maps[motor] = map
+    
+    # Convert values based on type of motor
+    for motor,map in motor_maps.iteritems():
+        map['clk'] = int(map['clk'])
+        map['dir'] = int(map['dir'])
+        map['number'] = int(map['number'])
+        if map['type'].lower() == 'stepper':
+            map['deg_per_ind'] = eval(map['deg_per_ind'])
+        elif map['type'].lower() == 'rc':
+            map['pulse_inc'] = float(map['pulse_inc'])
+            map['pulse_dfl'] = float(map['pulse_dfl'])
+            map['pulse_max'] = float(map['pulse_max'])
+            map['pulse_min'] = float(map['pulse_min'])
+            calfile = map['calfile']
+            try:
+                map['caldata'] = scipy.loadtxt(calfile)
+            except:
+                calfile = os.path.join(caldir,calfile)
+                map['caldata'] = scipy.loadtxt(calfile)
+        else:
+            raise ValueError, 'unkown motor type'
+
+    return motor_maps
+
+
+def convert_deg2ind(kine,map):
+    """
+    Converts kinematics from degrees to motor indices. 
+    """
+
+    if map['type'].lower() == 'stepper':
+        kine_ind = kine*(1.0/map['deg_per_ind'])
+    elif map['type'].lower() == 'rc':
+        caldata = sort_caldata(map['caldata'])
+        cal_deg = caldata[:,1]
+        cal_us = caldata[:,0]
+        interp_func = scipy.interpolate.interp1d(cal_deg,cal_us,kind='linear')
+        kine_us = interp_func(kine)
+        kine_us = kine_us - map['pulse_dfl']
+        kine_ind = kine_us*(1.0/map['pulse_inc'])
+    else:
+        raise ValueError, 'uknown motor type %s'%(map['type'])
+    return kine_ind
+
+def sort_caldata(caldata):
+    """
+    Sorts calibration data into acending order for interpolation.
+    """
+    def cmp_func(x,y):
+        if x[1] < y[1]:
+            return -1
+        elif x[1] > y[1]:
+            return 1
+        else:
+            return 0
+
+    caldata_list = zip(list(caldata[:,0]), list(caldata[:,1]))
+    caldata_list.sort(cmp=cmp_func)
+    return  scipy.array(caldata_list)
+    
+def get_zero_ind(map):
+    """
+    Returns the absolute index (relative to the defualt starting position)
+    of the zero degree position for the motor.
+    """
+    zero = 0.0
+    zero_ind = convert_deg2ind(zero,map)
+    print zero_ind
+
+def get_clkdir_pins(motor_maps):
+    """
+    Get tuples of clock and directio io pins in motor number order.
+    """
+    def cmp_func(x,y):
+        if x['number'] < y['number']:
+            return -1
+        elif x['number'] > y['number']:
+            return 1
+        else:
+            return 0
+
+    map_list = [v for k,v in motor_maps.iteritems()]
+    map_list.sort(cmp=cmp_func)
+    clk_pins = [map['clk'] for map in map_list]
+    dir_pins = [map['dir'] for map in map_list]
+    return tuple(clk_pins), tuple(dir_pins)
+
+def get_motor_nums(motor_maps):
+    """
+    Returns list of motor numbers
+    """
+    num_list = [v['number'] for k,v in motor_maps.iteritems()]
+    num_list.sort()
+    return num_list
+
+
+
