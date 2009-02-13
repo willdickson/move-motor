@@ -87,11 +87,11 @@ def outscan_kine(kine,motor_config,dt):
 
     # Create and populate motors structure
     motors_struct = motors_t()
-    motors_struct.num = motor_config['num']
+    motors_struct.num = motor_config['num_motor']
     motors_struct.dio_clk = motor_config['dio_clk']
     motors_struct.dio_dir = motor_config['dio_dir']
-    motors_struct.dev_name = motor_config['device']
-    motors_struct.subdev = motor_config['subdevice']
+    motors_struct.dev_name = motor_config['dev_name']
+    motors_struct.subdev = motor_config['dio_subdev']
 
     # Create kinematics structure
     kine_int = kine.astype(scipy.int_)    
@@ -103,8 +103,8 @@ def outscan_kine(kine,motor_config,dt):
     kine_struct.s1 = kine_int.ctypes.strides[1]
     
     # Return array
-    end_pos = (ctypes.c_int*motor_config['num'])() 
-    for i in range(motor_config['num']):
+    end_pos = (ctypes.c_int*motor_config['num_motor'])() 
+    for i in range(motor_config['num_motor']):
         end_pos[i] = 10
     
     #Outscan data
@@ -123,11 +123,11 @@ if __name__ == "__main__":
     dt = 1/1000.0
     
     motor_config = {
-        'num' : 2,
+        'num_motor' : 2,
         'dio_clk' : (0,2),
         'dio_dir' : (1,3),
-        'device' : '/dev/comedi0',
-        'subdevice' : 2
+        'dev_name' : '/dev/comedi0',
+        'dio_subdev' : 2
         }
     
     x = scipy.arange(5000,0,-1)
