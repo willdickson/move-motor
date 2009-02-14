@@ -217,37 +217,95 @@ def read_motor_maps(filename,mapdir=DFLT_MAP_DIR,caldir=DFLT_CAL_DIR):
                 map['caldata'] = scipy.loadtxt(calfile)
         else:
             raise ValueError, 'unkown motor type'
-
     return motor_maps
 
-
-def convert_deg2ind(kine,map):
+def _convert_deg2ind(kine_deg,map):
     """
-    Converts kinematics from degrees to motor indices. 
+    Converts kinematics from degrees to motor indices for single motor 
+    with specified motor map.
     """
-
+    kine_deg = scipy.array(kine_deg)
     if map['type'].lower() == 'stepper':
-        kine_ind = kine*(1.0/map['deg_per_ind'])
+        kine_ind = kine_deg*(1.0/map['deg_per_ind'])
     elif map['type'].lower() == 'rc':
-        caldata = sort_caldata(map['caldata'])
+        caldata = sort_caldata(map['caldata'],1)
         cal_deg = caldata[:,1]
         cal_us = caldata[:,0]
         interp_func = scipy.interpolate.interp1d(cal_deg,cal_us,kind='linear')
-        kine_us = interp_func(kine)
+        kine_us = interp_func(kine_deg)
         kine_us = kine_us - map['pulse_dfl']
         kine_ind = kine_us*(1.0/map['pulse_inc'])
     else:
         raise ValueError, 'uknown motor type %s'%(map['type'])
     return kine_ind
 
-def sort_caldata(caldata):
+def _convert_ind2deg(kine_ind,map):
     """
-    Sorts calibration data into acending order for interpolation.
+    Converts kinematics from motor indices to degrees for single motor 
+    with specified motor map.
+    """
+    kine_ind = scipy.array(kine_ind)
+    if map['type'].lower() == 'stepper':
+        kine_deg = kine_ind*map['deg_per_ind']
+    elif map['type'].lower() == 'rc':
+        caldata = sort_caldata(map['caldata'],0)
+        cal_deg = caldata[:,1]
+        cal_us = caldata[:,0]
+        interp_func = scipy.interpolate.interp1d(cal_us,cal_deg,kind='linear')
+        kine_us = kine_ind*map['pulse_inc'] + map['pulse_dfl']
+        kine_deg = interp_func(kine_us)
+    else:
+        raise ValueError, 'unknown motor type %s'%(map['type'])
+    return kine_deg
+
+def deg2ind(kine_deg, motor_maps):
+    """
+    Converts array of kinematics from degrees to motor indices based motor maps.
+
+    Note, kinematics may be of shape (N,K) or (K,) where N is the number of pts in each
+    trajectory and K is the number of motors. Each column j of the array is assumed to 
+    correspond to the kinematics for motor number j in the dictionaty of motor maps. 
+    """
+
+    kine_ind = scipy.zeros(kine_deg.shape)
+    for motor, map in motor_maps.iteritems():
+        n = map['number']
+        if len(kine_deg.shape) == 1:
+            kine_ind[n] = _convert_deg2ind(kine_deg[n], map)
+        elif len(kine_deg.shape) == 2:
+            kine_ind[:,n] = _convert_deg2ind(kine_deg[:,n], map)
+        else:
+            raise ValueError, 'kine shape incompatible'
+    return kine_ind
+
+def ind2deg(kine_ind, motor_maps):
+    """
+    Converts array of kinematics from motor indices to degrees based motor maps.
+
+    Note, kinematics may be of shape (N,K) or (K,) where N is the number of pts in each
+    trajectory and K is the number of motors. Each column j of the array is assumed to 
+    correspond to the kinematics for motor number j in the dictionaty of motor maps. 
+    """
+    kine_deg = scipy.zeros(kine_ind.shape)
+    for motor, map in motor_maps.iteritems():
+        n = map['number']
+        if len(kine_ind.shape) == 1:
+            kine_deg[n] = _convert_ind2deg(kine_ind[n], map)
+        elif len(kine_ind.shape) == 2:
+            kine_deg[:,n] = _convert_ind2deg(kine_ind[:,n], map)
+        else:
+            raise ValueError, 'kine shape incompatible'
+    return kine_deg
+
+def sort_caldata(caldata,col):
+    """
+    Sorts calibration data into acending order for interpolation along
+    the specified column.
     """
     def cmp_func(x,y):
-        if x[1] < y[1]:
+        if x[col] < y[col]:
             return -1
-        elif x[1] > y[1]:
+        elif x[col] > y[col]:
             return 1
         else:
             return 0
@@ -256,18 +314,46 @@ def sort_caldata(caldata):
     caldata_list.sort(cmp=cmp_func)
     return  scipy.array(caldata_list)
     
-def get_zero_ind(map):
+def _zero_degpos_ind(map):
     """
-    Returns the absolute index (relative to the defualt starting position)
-    of the zero degree position for the motor.
+    Returns the absolute index (relative to the default starting position)
+    of the zero degree position for the motor specified by the map.
     """
-    zero = 0.0
-    zero_ind = convert_deg2ind(zero,map)
-    print zero_ind
+    zero_degpos_ind = _convert_deg2ind(0.0,map)
+    return zero_degpos_ind
 
+def get_zero_degpos_ind(motor_maps):
+    """
+    Returns an array of the zero degree positions in indices of all motors specified 
+    by the dictionary of motor maps.
+    """
+    motor_num_list = get_motor_num_list(motor_maps)
+    num_motors = len(motor_num_list)
+    zero_deg = scipy.zeros((num_motors,))
+    zero_degpos_ind = deg2ind(zero_deg,motor_maps)
+    return zero_degpos_ind
+
+def _zero_indpos_deg(map):
+    """
+    Returns the position in degrees of the zero absolute index position.
+    """
+    zero_indpos_deg = _convert_ind2deg(0.0,map)
+    return zero_indpos_deg
+
+def get_zero_indpos_deg(motor_maps):
+    """
+    Returns an array of the zero absolute index positions in degrees for all motors
+    specified by the dictionary of motor maps.
+    """
+    motor_num_list = get_motor_num_list(motor_maps)
+    num_motors = len(motor_num_list)
+    zero_ind = scipy.zeros((num_motors,))
+    zero_indpos_deg = ind2deg(zero_ind,motor_maps)
+    return zero_indpos_deg
+    
 def get_clkdir_pins(motor_maps):
     """
-    Get tuples of clock and directio io pins in motor number order.
+    Get tuples of clock and direction io pins in motor number order.
     """
     def cmp_func(x,y):
         if x['number'] < y['number']:
@@ -283,7 +369,7 @@ def get_clkdir_pins(motor_maps):
     dir_pins = [map['dir'] for map in map_list]
     return tuple(clk_pins), tuple(dir_pins)
 
-def get_motor_nums(motor_maps):
+def get_motor_num_list(motor_maps):
     """
     Returns list of motor numbers
     """
