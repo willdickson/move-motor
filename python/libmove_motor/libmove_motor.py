@@ -35,6 +35,7 @@ Author: William Dickson
 import ctypes
 import scipy
 from signal import SIGINT
+from move_utils import convert2int
 
 lib = ctypes.cdll.LoadLibrary("libmove-motor.so.1")
 
@@ -82,6 +83,9 @@ def outscan_kine(kine,motor_config,dt):
       dt = time step in secs
     """
     
+    # Convert kinematics to integers
+    kine = convert2int(kine)
+
     dt_ns = ctypes.c_int()
     dt_ns = int(S2NS*dt)
 

@@ -172,6 +172,12 @@ def get_ramp(x0,x1,vmax,a,dt, output='ramp only'):
     else:
         raise ValueError, 'unknown keyword option output=%s'%(output,)
 
+def convert2int(move):
+    """
+    Converts continuous move to indices
+    """
+    move_index = scipy.around(move)
+    return move_index.astype(scipy.integer)
 
 def read_motor_maps(filename,mapdir=DFLT_MAP_DIR,caldir=DFLT_CAL_DIR): 
     """
