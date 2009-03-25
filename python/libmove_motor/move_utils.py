@@ -217,13 +217,36 @@ def read_motor_maps(filename,mapdir=DFLT_MAP_DIR,caldir=DFLT_CAL_DIR):
             map['pulse_min'] = float(map['pulse_min'])
             calfile = map['calfile']
             try:
-                map['caldata'] = scipy.loadtxt(calfile)
+                #map['caldata'] = scipy.loadtxt(calfile)
+                map['caldata'] = read_motor_cal(calfile)
             except:
                 calfile = os.path.join(caldir,calfile)
-                map['caldata'] = scipy.loadtxt(calfile)
+                #map['caldata'] = scipy.loadtxt(calfile)
+                map['caldata'] = read_motor_cal(calfile)
         else:
             raise ValueError, 'unkown motor type'
     return motor_maps
+
+def read_motor_cal(filename):
+    """
+    Read RC servo-motor calibration file. 1st entry in file should be the 
+    bais angle subsequent entries should be usec deg pairs. The calibration 
+    is corrected for bais and returned.
+    """
+    fd = open(filename,'r')
+    cal = []
+    for i, line in enumerate(fd.readlines()):
+        line = line.split()
+        if i == 0:
+            bias = float(line[0])
+        else:
+            us = float(line[0])
+            deg = float(line[1])
+            cal.append([us,deg])
+    cal = scipy.array(cal)
+    cal = cal + bias
+    fd.close()
+    return cal
 
 def _convert_deg2ind(kine_deg,map):
     """
