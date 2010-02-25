@@ -406,12 +406,12 @@ def get_motor_num_list(motor_maps):
     num_list.sort()
     return num_list
 
-def get_name2num_map(maps):
+def get_num2name_map(maps):
     """
-    Return name to motor number dictionary
+    Returns motor number to motor name dictionary
     """
-    name2num = {}
+    num2name = {}
     for k,v in maps.iteritems():
-        name2num[k] =  maps[k]['number']
-    return name2num
+        num2name[maps[k]['number']] = k
+    return num2name
 
