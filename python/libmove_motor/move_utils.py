@@ -319,7 +319,7 @@ def ind2deg(kine_ind, motor_maps):
     for motor, map in motor_maps.iteritems():
         n = map['number']
         if len(kine_ind.shape) == 1:
-            kine_deg[n] = _convert_ind2deg(kine_ind[n], map)
+            kine_deg = _convert_ind2deg(kine_ind, map)
         elif len(kine_ind.shape) == 2:
             kine_deg[:,n] = _convert_ind2deg(kine_ind[:,n], map)
         else:
