@@ -415,3 +415,37 @@ def get_num2name_map(maps):
         num2name[maps[k]['number']] = k
     return num2name
 
+def get_motor_cal(motor_maps,table_size=50):
+    """
+    Returns list of motors calibrations sorted by motor number.
+    """
+    cal_list = []
+
+    # Sort motor calibrations by motor number
+    num_key_pairs = [(v['number'],k) for k,v in motor_maps.iteritems()]
+    num_key_pairs.sort()
+
+    # Loop over motors and get motor calibration data
+    for n,k in num_key_pairs:
+        print k, motor_maps[k]['type'], motor_maps[k]['number']
+
+        cal ={}
+        if motor_maps[k]['type'] == 'RC':
+            cal['type'] = 'table' 
+            # Get bounds and produce lookup table
+            max_pos =  motor_maps[k]['caldata'][:,1].max()
+            min_pos =  motor_maps[k]['caldata'][:,1].min()
+            deg_data = scipy.linspace(min_pos,max_pos,table_size)
+            ind_data = deg2ind(deg_data, {k:motor_maps[k]})
+            cal['deg_data'] = deg_data
+            cal['ind_data'] = ind_data
+        else:
+            cal['type'] = 'mult'
+            cal['deg_per_ind'] = motor_maps[k]['deg_per_ind']
+
+        cal_list.append(cal)
+
+    return cal_list
+
+                          
+
