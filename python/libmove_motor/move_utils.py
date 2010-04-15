@@ -427,8 +427,6 @@ def get_motor_cal(motor_maps,table_size=50):
 
     # Loop over motors and get motor calibration data
     for n,k in num_key_pairs:
-        print k, motor_maps[k]['type'], motor_maps[k]['number']
-
         cal ={}
         if motor_maps[k]['type'] == 'RC':
             cal['type'] = 'table' 
@@ -442,7 +440,6 @@ def get_motor_cal(motor_maps,table_size=50):
         else:
             cal['type'] = 'mult'
             cal['deg_per_ind'] = motor_maps[k]['deg_per_ind']
-
         cal_list.append(cal)
 
     return cal_list
