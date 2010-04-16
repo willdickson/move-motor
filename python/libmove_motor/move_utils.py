@@ -317,10 +317,17 @@ def ind2deg(kine_ind, motor_maps):
     """
     kine_deg = scipy.zeros(kine_ind.shape)
     for motor, map in motor_maps.iteritems():
+        print motor
         n = map['number']
         if len(kine_ind.shape) == 1:
-            kine_deg = _convert_ind2deg(kine_ind, map)
+            print '1'
+            print kine_ind
+            print map
+            kine_deg[n] = _convert_ind2deg(kine_ind[n], map)
         elif len(kine_ind.shape) == 2:
+            print '2'
+            print kine_ind[:,n]
+            print map
             kine_deg[:,n] = _convert_ind2deg(kine_ind[:,n], map)
         else:
             raise ValueError, 'kine shape incompatible'
