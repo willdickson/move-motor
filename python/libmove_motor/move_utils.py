@@ -435,8 +435,10 @@ def get_motor_cal(motor_maps,table_size=50):
             min_pos =  motor_maps[k]['caldata'][:,1].min()
             deg_data = scipy.linspace(min_pos,max_pos,table_size)
             ind_data = deg2ind(deg_data, {k:motor_maps[k]})
-            cal['deg_data'] = deg_data
-            cal['ind_data'] = ind_data
+            deg_data = deg_data.reshape((table_size,1))
+            ind_data = ind_data.reshape((table_size,1))
+            cal['deg_data'] = deg_data.astype(scipy.dtype('float32'))
+            cal['ind_data'] = ind_data.astype(scipy.dtype('float32'))
         else:
             cal['type'] = 'mult'
             cal['deg_per_ind'] = motor_maps[k]['deg_per_ind']
