@@ -209,7 +209,7 @@ def read_motor_maps(filename,mapdir=DFLT_MAP_DIR,caldir=DFLT_CAL_DIR):
         map['dir'] = int(map['dir'])
         map['number'] = int(map['number'])
         if map['type'].lower() == 'stepper':
-            map['deg_per_ind'] = eval(map['deg_per_ind'])
+            map['unit_per_ind'] = eval(map['unit_per_ind'])
         elif map['type'].lower() == 'rc':
             map['pulse_inc'] = float(map['pulse_inc'])
             map['pulse_dfl'] = float(map['pulse_dfl'])
@@ -229,9 +229,9 @@ def read_motor_maps(filename,mapdir=DFLT_MAP_DIR,caldir=DFLT_CAL_DIR):
 
 def read_motor_cal(filename):
     """
-    Read RC servo-motor calibration file. 1st entry in file should be the 
-    bais angle subsequent entries should be usec deg pairs. The calibration 
-    is corrected for bais and returned.
+    Read RC servo-motor calibration file. 1st entry in file should be the bais
+    angle subsequent entries should be usec to user unit  pairs. The
+    calibration is corrected for bais and returned.
     """
     fd = open(filename,'r')
     cal = []
@@ -241,90 +241,90 @@ def read_motor_cal(filename):
             bias = float(line[0])
         else:
             us = float(line[0])
-            deg = float(line[1])
-            cal.append([us,deg])
+            unit = float(line[1])
+            cal.append([us,unit])
     cal = scipy.array(cal)
     cal = cal + bias
     fd.close()
     return cal
 
-def _convert_deg2ind(kine_deg,map):
+def _convert_unit2ind(kine_unit,map):
     """
-    Converts kinematics from degrees to motor indices for single motor 
-    with specified motor map.
+    Converts kinematics from user units to motor indices for single motor with
+    specified motor map.
     """
-    kine_deg = scipy.array(kine_deg)
+    kine_unit = scipy.array(kine_unit)
     if map['type'].lower() == 'stepper':
-        kine_ind = kine_deg*(1.0/map['deg_per_ind'])
+        kine_ind = kine_unit*(1.0/map['unit_per_ind'])
     elif map['type'].lower() == 'rc':
         caldata = sort_caldata(map['caldata'],1)
-        cal_deg = caldata[:,1]
+        cal_unit = caldata[:,1]
         cal_us = caldata[:,0]
-        interp_func = scipy.interpolate.interp1d(cal_deg,cal_us,kind='linear')
-        kine_us = interp_func(kine_deg)
+        interp_func = scipy.interpolate.interp1d(cal_unit,cal_us,kind='linear')
+        kine_us = interp_func(kine_unit)
         kine_us = kine_us - map['pulse_dfl']
         kine_ind = kine_us*(1.0/map['pulse_inc'])
     else:
         raise ValueError, 'uknown motor type %s'%(map['type'])
     return kine_ind
 
-def _convert_ind2deg(kine_ind,map):
+def _convert_ind2unit(kine_ind,map):
     """
-    Converts kinematics from motor indices to degrees for single motor 
+    Converts kinematics from motor indices to user units for single motor 
     with specified motor map.
     """
     kine_ind = scipy.array(kine_ind)
     if map['type'].lower() == 'stepper':
-        kine_deg = kine_ind*map['deg_per_ind']
+        kine_unit = kine_ind*map['unit_per_ind']
     elif map['type'].lower() == 'rc':
         caldata = sort_caldata(map['caldata'],0)
-        cal_deg = caldata[:,1]
+        cal_unit = caldata[:,1]
         cal_us = caldata[:,0]
-        interp_func = scipy.interpolate.interp1d(cal_us,cal_deg,kind='linear')
+        interp_func = scipy.interpolate.interp1d(cal_us,cal_unit,kind='linear')
         kine_us = kine_ind*map['pulse_inc'] + map['pulse_dfl']
-        kine_deg = interp_func(kine_us)
+        kine_unit = interp_func(kine_us)
     else:
         raise ValueError, 'unknown motor type %s'%(map['type'])
-    return kine_deg
+    return kine_unit
 
-def deg2ind(kine_deg, motor_maps):
+def unit2ind(kine_unit, motor_maps):
     """
-    Converts array of kinematics from degrees to motor indices based motor maps.
+    Converts array of kinematics from user units to motor indices based motor maps.
 
     Note, kinematics may be of shape (N,K) or (K,) where N is the number of pts in each
     trajectory and K is the number of motors. Each column j of the array is assumed to 
     correspond to the kinematics for motor number j in the dictionaty of motor maps. 
     """
 
-    kine_ind = scipy.zeros(kine_deg.shape)
+    kine_ind = scipy.zeros(kine_unit.shape)
     for motor, map in motor_maps.iteritems():
         n = map['number']
-        if len(kine_deg.shape) == 1:
-            kine_ind[n] = _convert_deg2ind(kine_deg[n], map)
-        elif len(kine_deg.shape) == 2:
-            kine_ind[:,n] = _convert_deg2ind(kine_deg[:,n], map)
+        if len(kine_unit.shape) == 1:
+            kine_ind[n] = _convert_unit2ind(kine_unit[n], map)
+        elif len(kine_unit.shape) == 2:
+            kine_ind[:,n] = _convert_unit2ind(kine_unit[:,n], map)
         else:
             raise ValueError, 'kine shape incompatible'
     return kine_ind
 
-def ind2deg(kine_ind, motor_maps):
+def ind2unit(kine_ind, motor_maps):
     """
-    Converts array of kinematics from motor indices to degrees based motor maps.
+    Converts array of kinematics from motor indices to user units based motor maps.
 
     Note, kinematics may be of shape (N,K) or (K,) where N is the number of pts in each
     trajectory and K is the number of motors. Each column j of the array is assumed to 
     correspond to the kinematics for motor number j in the dictionaty of motor maps. 
     """
-    kine_deg = scipy.zeros(kine_ind.shape)
+    kine_unit = scipy.zeros(kine_ind.shape)
     for motor, map in motor_maps.iteritems():
         n = map['number']
         if len(kine_ind.shape) == 1:
-            kine_deg[n] = _convert_ind2deg(kine_ind[n], map)
+            kine_unit[n] = _convert_ind2unit(kine_ind[n], map)
         elif len(kine_ind.shape) == 2:
-            kine_deg[:,n] = _convert_ind2deg(kine_ind[:,n], map)
+            kine_unit[:,n] = _convert_ind2unit(kine_ind[:,n], map)
         else:
             raise ValueError, 'kine shape incompatible'
-    return kine_deg
+    return kine_unit
 
 def sort_caldata(caldata,col):
     """
@@ -343,42 +343,42 @@ def sort_caldata(caldata,col):
     caldata_list.sort(cmp=cmp_func)
     return  scipy.array(caldata_list)
     
-def _zero_degpos_ind(map):
+def _zero_unitpos_ind(map):
     """
     Returns the absolute index (relative to the default starting position)
-    of the zero degree position for the motor specified by the map.
+    of the zero position in user units for the motor specified by map.
     """
-    zero_degpos_ind = _convert_deg2ind(0.0,map)
-    return zero_degpos_ind
+    zero_unitpos_ind = _convert_unit2ind(0.0,map)
+    return zero_unitpos_ind
 
-def get_zero_degpos_ind(motor_maps):
+def get_zero_unitpos_in_ind(motor_maps):
     """
-    Returns an array of the zero degree positions in indices of all motors specified 
+    Returns an array of the zero positions (user units)  in indices of all motors specified 
     by the dictionary of motor maps.
     """
     motor_num_list = get_motor_num_list(motor_maps)
     num_motors = len(motor_num_list)
-    zero_deg = scipy.zeros((num_motors,))
-    zero_degpos_ind = deg2ind(zero_deg,motor_maps)
-    return zero_degpos_ind
+    zero_unit = scipy.zeros((num_motors,))
+    zero_unitpos_ind = unit2ind(zero_unit,motor_maps)
+    return zero_unitpos_ind
 
-def _zero_indpos_deg(map):
+def _zero_indpos_unit(map):
     """
-    Returns the position in degrees of the zero absolute index position.
+    Returns the position in user units  of the zero absolute index position.
     """
-    zero_indpos_deg = _convert_ind2deg(0.0,map)
-    return zero_indpos_deg
+    zero_indpos_unit= _convert_ind2unit(0.0,map)
+    return zero_indpos_unit
 
-def get_zero_indpos_deg(motor_maps):
+def get_zero_indpos_in_unit(motor_maps):
     """
-    Returns an array of the zero absolute index positions in degrees for all motors
+    Returns an array of the zero absolute index positions in user units for all motors
     specified by the dictionary of motor maps.
     """
     motor_num_list = get_motor_num_list(motor_maps)
     num_motors = len(motor_num_list)
     zero_ind = scipy.zeros((num_motors,))
-    zero_indpos_deg = ind2deg(zero_ind,motor_maps)
-    return zero_indpos_deg
+    zero_indpos_unit = ind2unit(zero_ind,motor_maps)
+    return zero_indpos_unit
     
 def get_clkdir_pins(motor_maps):
     """
@@ -433,15 +433,15 @@ def get_motor_cal(motor_maps,table_size=50):
             # Get bounds and produce lookup table
             max_pos =  motor_maps[k]['caldata'][:,1].max()
             min_pos =  motor_maps[k]['caldata'][:,1].min()
-            deg_data = scipy.linspace(min_pos,max_pos,table_size)
-            ind_data = _convert_deg2ind(deg_data, motor_maps[k])
-            deg_data = deg_data.reshape((table_size,1))
+            unit_data = scipy.linspace(min_pos,max_pos,table_size)
+            ind_data = _convert_unit2ind(unit_data, motor_maps[k])
+            unit_data = unit_data.reshape((table_size,1))
             ind_data = ind_data.reshape((table_size,1))
-            cal['deg_data'] = deg_data.astype(scipy.dtype('float32'))
+            cal['unit_data'] = unit_data.astype(scipy.dtype('float32'))
             cal['ind_data'] = ind_data.astype(scipy.dtype('float32'))
         else:
             cal['type'] = 'mult'
-            cal['deg_per_ind'] = motor_maps[k]['deg_per_ind']
+            cal['unit_per_ind'] = motor_maps[k]['unit_per_ind']
         cal_list.append(cal)
 
     return cal_list
