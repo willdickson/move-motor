@@ -38,6 +38,7 @@ import scipy
 import scipy.interpolate
 import ConfigParser
 
+DEG2RAD = scipy.pi/180.0
 BORFRC_DIR = os.path.join(os.environ['HOME'],'.borfrc')
 DFLT_CAL_DIR = os.path.join(BORFRC_DIR,'motor_cal')
 DFLT_MAP_DIR = os.path.join(BORFRC_DIR,'motor_map')
@@ -230,21 +231,21 @@ def read_motor_maps(filename,mapdir=DFLT_MAP_DIR,caldir=DFLT_CAL_DIR):
 def read_motor_cal(filename):
     """
     Read RC servo-motor calibration file. 1st entry in file should be the bais
-    angle subsequent entries should be usec to user unit  pairs. The
-    calibration is corrected for bais and returned.
+    angle in degrees, subsequent entries should be usec to degree pairs. The units
+    are converted to radians, the calibration is corrected for bais and returned.
     """
     fd = open(filename,'r')
     cal = []
     for i, line in enumerate(fd.readlines()):
         line = line.split()
         if i == 0:
-            bias = float(line[0])
+            bias_rad = DEG2RAD*float(line[0])
         else:
             us = float(line[0])
-            unit = float(line[1])
-            cal.append([us,unit])
+            ang_rad = DEG2RAD*float(line[1])
+            cal.append([us,ang_rad])
     cal = scipy.array(cal)
-    cal = cal + bias
+    cal = cal + bias_rad
     fd.close()
     return cal
 
